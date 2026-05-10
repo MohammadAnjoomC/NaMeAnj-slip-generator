@@ -1,0 +1,106 @@
+# ----------------------------------------------------------------------
+# NA-ME-ANJ ROOT SECURITY & URL CONFIGURATION
+# ----------------------------------------------------------------------
+RewriteEngine On
+
+# 1. FORCE HTTPS
+RewriteCond %{HTTP:X-Forwarded-Proto} =http
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 2. CUSTOM ERROR PAGE
+ErrorDocument 404 /404
+
+# 3. PREVENT DIRECTORY BROWSING
+Options -Indexes
+
+# 4. CLEAN URLS (REMOVE .PHP) - IMPROVED
+# Only redirect if it's a GET request and NOT a physical file (like a PDF)
+RewriteCond %{REQUEST_METHOD} GET
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# Internally map /file to /file.php (Ensures it doesn't try to map /user/path/file.pdf to .php)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*?)/?$ $1.php [NC,L]
+
+# 5. DISABLE SERVER SIGNATURE
+ServerSignature Off
+
+# 6. PROTECT CORE FILES & DATABASE
+<FilesMatch "^\.|\.(htaccess|htpasswd|log|ini|swp|bak|json|env|sql|git|yml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 6.5 BLOCK PHP EXECUTION IN UPLOAD FOLDERS (Massive Security Boost)
+RewriteRule ^(user|images|database)/.*\.(php|phtml|php3|php4|php5|php7|phar|inc|cgi|pl|sh|jsp)$ - [F,NC,L]
+
+# 7. BLOCK MALICIOUS SCRIPT INJECTIONS
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
+
+# 8. PHP SECURITY & SIZE LIMITS
+<IfModule mod_php7.c>
+    php_flag expose_php Off
+    php_value session.cookie_httponly 1
+    php_value session.use_only_cookies 1
+    php_value session.cookie_secure 1
+    php_flag display_errors Off
+    php_value upload_max_filesize 64M
+    php_value post_max_size 64M
+    php_value memory_limit 128M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 64M
+    php_value post_max_size 64M
+    php_value memory_limit 128M
+</IfModule>
+
+# 9. BROWSER SECURITY HEADERS (HSTS & CSP)
+<IfModule mod_headers.c>
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    # Allow inline scripts since the app uses them, but restrict other domains
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://ui-avatars.com; connect-src 'self' https://api.remove.bg;"
+</IfModule>
+
+# 9.5 BLOCK BAD BOTS & SPAMMERS
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_USER_AGENT} (SemrushBot|AhrefsBot|MJ12bot|DotBot|PetalBot|Baiduspider) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# 10. INCREASE APACHE BODY LIMIT
+<IfModule mod_core.c>
+    LimitRequestBody 67108864
+</IfModule>
+
+# 11. ALLOW PUBLIC ACCESS TO USER PDFS FOR DOWNLOAD
+# This ensures that your 'user/' folder allows PDF viewing/downloading
+<FilesMatch "\.(pdf|jpg|jpeg|png)$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Allow from all
+    </IfModule>
+</FilesMatch>

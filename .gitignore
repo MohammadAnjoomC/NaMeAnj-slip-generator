@@ -1,0 +1,18 @@
+# User Uploads and generated PDFs
+/user/*
+!/user/.gitkeep
+
+# JSON Database files (ignore actual data)
+/database/*.json
+
+# API Keys and Environment Variables
+.env
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
