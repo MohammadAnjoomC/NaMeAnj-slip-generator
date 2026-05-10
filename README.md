@@ -16,7 +16,7 @@ With a massive library of high-resolution background templates (ranging from min
 ## 🚀 Installation & Setup
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/nameanj.git
+   git clone https://github.com/MohammadAnjoomC/NaMeAnj-slip-generator.git
    ```
 2. **Move to Server:**
    Place the files into your Apache/Nginx `htdocs` or `www` directory. PHP 7.4 or 8.x is required.
